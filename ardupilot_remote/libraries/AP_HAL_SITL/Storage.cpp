@@ -232,9 +232,7 @@ static void sitl_flash_open(void)
             }
             uint8_t fill[HAL_FLASH_SECTOR_SIZE*2];
             memset(fill, 0xff, sizeof(fill));
-            if (pwrite(flash_fd, fill, sizeof(fill), 0) != (ssize_t)sizeof(fill)) {
-                AP_HAL::panic("Failed to fill flash.dat");
-            }
+            pwrite(flash_fd, fill, sizeof(fill), 0);
         }
     }
 }
@@ -243,7 +241,7 @@ static bool sitl_flash_write(uint32_t addr, const uint8_t *data, uint32_t length
 {
     sitl_flash_open();
     uint8_t old[length];
-    if (pread(flash_fd, old, length, addr) != (ssize_t)length) {
+    if (pread(flash_fd, old, length, addr) != length) {
         AP_HAL::panic("Failed to read flash.dat at %u len=%u", unsigned(addr), unsigned(length));
     }
 #if defined(HAL_FLASH_MIN_WRITE_SIZE) && HAL_FLASH_MIN_WRITE_SIZE == 32
@@ -277,13 +275,13 @@ static bool sitl_flash_write(uint32_t addr, const uint8_t *data, uint32_t length
         }
 #endif
     }
-    return pwrite(flash_fd, data, length, addr) == (ssize_t)length;
+    return pwrite(flash_fd, data, length, addr) == length;
 }
 
 static bool sitl_flash_read(uint32_t addr, uint8_t *data, uint32_t length)
 {
     sitl_flash_open();
-    return pread(flash_fd, data, length, addr) == (ssize_t)length;
+    return pread(flash_fd, data, length, addr) == length;
 }
 
 static bool sitl_flash_erasepage(uint32_t page)
