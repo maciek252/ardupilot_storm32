@@ -448,30 +448,17 @@ void Mode::zero_throttle_and_hold_attitude()
     attitude_control->set_throttle_out(0.0f, false, copter.g.throttle_filt);
 }
 
-// handle situations where the vehicle is on the ground waiting for takeoff
-// force_throttle_unlimited should be true in cases where we want to keep the motors spooled up
-// (instead of spooling down to ground idle).  This is required for tradheli's in Guided and Auto
-// where we always want the motor spooled up in Guided or Auto mode.  Tradheli's main rotor stops 
-// when spooled down to ground idle.
-// ultimately it forces the motor interlock to be obeyed in auto and guided modes when on the ground.
-void Mode::make_safe_ground_handling(bool force_throttle_unlimited)
+void Mode::make_safe_spool_down()
 {
-    if (force_throttle_unlimited) {
-        // keep rotors turning 
-        motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
-    } else {
-        // spool down to ground idle
-        motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
-    }
-
-
+    // command aircraft to initiate the shutdown process
+    motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
     switch (motors->get_spool_state()) {
 
     case AP_Motors::SpoolState::SHUT_DOWN:
     case AP_Motors::SpoolState::GROUND_IDLE:
         // relax controllers during idle states
         attitude_control->reset_rate_controller_I_terms_smoothly();
-        attitude_control->reset_yaw_target_and_rate();
+        attitude_control->set_yaw_target_to_current_heading();
         break;
 
     case AP_Motors::SpoolState::SPOOLING_UP:
@@ -481,7 +468,7 @@ void Mode::make_safe_ground_handling(bool force_throttle_unlimited)
         break;
     }
 
-    pos_control->relax_z_controller(0.0f);   // forces throttle output to decay to zero
+    pos_control->relax_alt_hold_controllers(0.0f);   // forces throttle output to go to zero
     pos_control->update_z_controller();
     // we may need to move this out
     attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(0.0f, 0.0f, 0.0f);
@@ -510,24 +497,19 @@ int32_t Mode::get_alt_above_ground_cm(void)
 void Mode::land_run_vertical_control(bool pause_descent)
 {
     float cmb_rate = 0;
-    bool ignore_descent_limit = false;
     if (!pause_descent) {
-
-        // do not ignore limits until we have slowed down for landing
-        ignore_descent_limit = (MAX(g2.land_alt_low,100) > get_alt_above_ground_cm()) || copter.ap.land_complete_maybe;
-
         float max_land_descent_velocity;
         if (g.land_speed_high > 0) {
             max_land_descent_velocity = -g.land_speed_high;
         } else {
-            max_land_descent_velocity = pos_control->get_max_speed_down_cms();
+            max_land_descent_velocity = pos_control->get_max_speed_down();
         }
 
         // Don't speed up for landing.
         max_land_descent_velocity = MIN(max_land_descent_velocity, -abs(g.land_speed));
 
         // Compute a vertical velocity demand such that the vehicle approaches g2.land_alt_low. Without the below constraint, this would cause the vehicle to hover at g2.land_alt_low.
-        cmb_rate = sqrt_controller(MAX(g2.land_alt_low,100)-get_alt_above_ground_cm(), pos_control->get_pos_z_p().kP(), pos_control->get_max_accel_z_cmss(), G_Dt);
+        cmb_rate = sqrt_controller(MAX(g2.land_alt_low,100)-get_alt_above_ground_cm(), pos_control->get_pos_z_p().kP(), pos_control->get_max_accel_z(), G_Dt);
 
         // Constrain the demanded vertical velocity so that it is between the configured maximum descent speed and the configured minimum descent speed.
         cmb_rate = constrain_float(cmb_rate, max_land_descent_velocity, -abs(g.land_speed));
@@ -542,14 +524,14 @@ void Mode::land_run_vertical_control(bool pause_descent)
             const float precland_min_descent_speed = 10.0f;
 
             float max_descent_speed = abs(g.land_speed)*0.5f;
-            float land_slowdown = MAX(0.0f, pos_control->get_pos_error_xy_cm()*(max_descent_speed/precland_acceptable_error));
+            float land_slowdown = MAX(0.0f, pos_control->get_pos_error_xy()*(max_descent_speed/precland_acceptable_error));
             cmb_rate = MIN(-precland_min_descent_speed, -max_descent_speed+land_slowdown);
         }
 #endif
     }
 
     // update altitude target and call position controller
-    pos_control->land_at_climb_rate_cm(cmb_rate, ignore_descent_limit);
+    pos_control->set_alt_target_from_climb_rate_ff(cmb_rate, G_Dt, true);
     pos_control->update_z_controller();
 }
 
@@ -610,13 +592,13 @@ void Mode::land_run_horizontal_control()
             target_vel_rel.x = -inertial_nav.get_velocity().x;
             target_vel_rel.y = -inertial_nav.get_velocity().y;
         }
-        pos_control->set_pos_target_xy_cm(target_pos.x, target_pos.y);
+        pos_control->set_xy_target(target_pos.x, target_pos.y);
         pos_control->override_vehicle_velocity_xy(-target_vel_rel);
     }
 #endif
 
     // process roll, pitch inputs
-    loiter_nav->set_pilot_desired_acceleration(target_roll, target_pitch);
+    loiter_nav->set_pilot_desired_acceleration(target_roll, target_pitch, G_Dt);
 
     // run loiter controller
     loiter_nav->update();
@@ -640,7 +622,7 @@ void Mode::land_run_horizontal_control()
             thrust_vector.y *= ratio;
 
             // tell position controller we are applying an external limit
-            pos_control->set_externally_limited_xy();
+            pos_control->set_limit_accel_xy();
         }
     }
 
@@ -694,7 +676,7 @@ float Mode::get_pilot_desired_throttle() const
 float Mode::get_avoidance_adjusted_climbrate(float target_rate)
 {
 #if AC_AVOID_ENABLED == ENABLED
-    AP::ac_avoid()->adjust_velocity_z(pos_control->get_pos_z_p().kP(), pos_control->get_max_accel_z_cmss(), target_rate, G_Dt);
+    AP::ac_avoid()->adjust_velocity_z(pos_control->get_pos_z_p().kP(), pos_control->get_max_accel_z(), target_rate, G_Dt);
     return target_rate;
 #else
     return target_rate;
@@ -763,7 +745,7 @@ float Mode::get_pilot_desired_yaw_rate(int16_t stick_angle)
     }
 
     // range check expo
-    g2.acro_y_expo = constrain_float(g2.acro_y_expo, -0.5f, 1.0f);
+    g2.acro_y_expo = constrain_float(g2.acro_y_expo, 0.0f, 1.0f);
 
     // calculate yaw rate request
     float yaw_request;
@@ -819,8 +801,8 @@ GCS_Copter &Mode::gcs()
 // are taking off so I terms can be cleared
 void Mode::set_throttle_takeoff()
 {
-    // initialise the vertical position controller
-    pos_control->init_z_controller();
+    // tell position controller to reset alt target and reset I terms
+    pos_control->init_takeoff();
 }
 
 uint16_t Mode::get_pilot_speed_dn()

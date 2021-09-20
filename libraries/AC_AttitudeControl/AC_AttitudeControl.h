@@ -106,13 +106,10 @@ public:
     void save_accel_yaw_max(float accel_yaw_max) { _accel_yaw_max.set_and_save(accel_yaw_max); }
 
     // get the roll angular velocity limit in radians/s
-    float get_ang_vel_roll_max_rads() const { return _ang_vel_roll_max; }
+    float get_ang_vel_roll_max_radss() const { return _ang_vel_roll_max; }
 
     // get the pitch angular velocity limit in radians/s
-    float get_ang_vel_pitch_max_rads() const { return _ang_vel_pitch_max; }
-
-    // get the yaw slew limit
-    float get_slew_yaw_cds() const { return _slew_yaw; }
+    float get_ang_vel_pitch_max_radss() const { return _ang_vel_pitch_max; }
 
     // get the rate control input smoothing time constant
     float get_input_tc() const { return _input_tc; }
@@ -123,7 +120,7 @@ public:
     // Ensure attitude controller have zero errors to relax rate controller output
     void relax_attitude_controllers();
 
-    // Used by child class AC_AttitudeControl_TS to change behaviour for tailsitter quadplanes
+    // Used by child class AC_AttitudeControl_TS to change behavior for tailsitter quadplanes
     virtual void relax_attitude_controllers(bool exclude_pitch) { relax_attitude_controllers(); }
 
     // reset rate controller I terms
@@ -132,13 +129,14 @@ public:
     // reset rate controller I terms smoothly to zero in 0.5 seconds
     void reset_rate_controller_I_terms_smoothly();
 
-    // Sets attitude target to vehicle attitude and sets all rates to zero
-    // If reset_rate is false rates are not reset to allow the rate controllers to run
-    void reset_target_and_rate(bool reset_rate = true);
+    // Sets attitude target to vehicle attitude
+    void set_attitude_target_to_current_attitude() { _ahrs.get_quat_body_to_ned(_attitude_target); }
 
-    // Sets yaw target to vehicle heading and sets yaw rate to zero
-    // If reset_rate is false rates are not reset to allow the rate controllers to run
-    void reset_yaw_target_and_rate(bool reset_rate = true);
+    // Sets yaw target to vehicle heading
+    void set_yaw_target_to_current_heading() { shift_ef_yaw_target(degrees(_ahrs.yaw - _euler_angle_target.z) * 100.0f); }
+
+    // Shifts earth frame yaw target by yaw_shift_cd. yaw_shift_cd should be in centidegrees and is added to the current target heading
+    void shift_ef_yaw_target(float yaw_shift_cd);
 
     // handle reset of attitude from EKF since the last iteration
     void inertial_frame_reset();
@@ -172,8 +170,8 @@ public:
     virtual void input_angle_step_bf_roll_pitch_yaw(float roll_angle_step_bf_cd, float pitch_angle_step_bf_cd, float yaw_angle_step_bf_cd);
 
     // Command a thrust vector in the earth frame and a heading angle and/or rate
-    virtual void input_thrust_vector_rate_heading(const Vector3f& thrust_vector, float heading_rate_cds);
-    virtual void input_thrust_vector_heading(const Vector3f& thrust_vector, float heading_angle_cd, float heading_rate_cds);
+    void input_thrust_vector_rate_heading(const Vector3f& thrust_vector, float heading_rate_cds);
+    void input_thrust_vector_heading(const Vector3f& thrust_vector, float heading_angle_cd, float heading_rate_cds);
     void input_thrust_vector_heading(const Vector3f& thrust_vector, float heading_cd) {input_thrust_vector_heading(thrust_vector, heading_cd, 0.0f);}
 
     // Converts thrust vector and heading angle to quaternion rotation in the earth frame

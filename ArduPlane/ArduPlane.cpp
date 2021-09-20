@@ -4,7 +4,7 @@
    Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Amilcar Lucas, Gregory Fletcher, Paul Riseborough, Brandon Jones, Jon Challinger, Tom Pittenger
    Thanks to:  Chris Anderson, Michael Oborne, Paul Mather, Bill Premerlani, James Cohen, JB from rotorFX, Automatik, Fefenin, Peter Meister, Remzibi, Yury Smirnov, Sandro Benigno, Max Levine, Roberto Navoni, Lorenz Meier, Yury MonZon
 
-   Please contribute your ideas! See https://ardupilot.org/dev for details
+   Please contribute your ideas! See https://dev.ardupilot.org for details
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -83,7 +83,7 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
 #endif // CAMERA == ENABLED
     SCHED_TASK_CLASS(AP_Scheduler, &plane.scheduler, update_logging,         0.2,    100),
     SCHED_TASK(compass_save,          0.1,    200),
-    SCHED_TASK(Log_Write_Fast,        400,    300),
+    SCHED_TASK(Log_Write_Fast,         25,    300),
     SCHED_TASK(update_logging1,        25,    300),
     SCHED_TASK(update_logging2,        25,    300),
 #if HAL_SOARING_ENABLED
@@ -112,7 +112,7 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
 #if LANDING_GEAR_ENABLED == ENABLED
     SCHED_TASK(landing_gear_update, 5, 50),
 #endif
-#if HAL_EFI_ENABLED
+#if EFI_ENABLED
     SCHED_TASK(efi_update,             10,    200),
 #endif
 };
@@ -132,6 +132,13 @@ constexpr int8_t Plane::_failsafe_priorities[7];
 void Plane::ahrs_update()
 {
     arming.update_soft_armed();
+
+#if HIL_SUPPORT
+    if (g.hil_mode == 1) {
+        // update hil before AHRS update
+        gcs().update_receive();
+    }
+#endif
 
     ahrs.update();
 
@@ -269,12 +276,8 @@ void Plane::one_second_loop()
     adsb.set_stall_speed_cm(aparm.airspeed_min);
     adsb.set_max_speed(aparm.airspeed_max);
 #endif
-
-    if (g2.flight_options & FlightOptions::ENABLE_DEFAULT_AIRSPEED) {
-        // use average of min and max airspeed as default airspeed fusion with high variance
-        ahrs.writeDefaultAirSpeed((float)((aparm.airspeed_min + aparm.airspeed_max)/2),
-                                  (float)((aparm.airspeed_max - aparm.airspeed_min)/2));
-    }
+    ahrs.writeDefaultAirSpeed((float)((aparm.airspeed_min + aparm.airspeed_max)/2),
+                              (float)((aparm.airspeed_max - aparm.airspeed_min)/2));
 
     // sync MAVLink system ID
     mavlink_system.sysid = g.sysid_this_mav;
@@ -326,7 +329,7 @@ void Plane::compass_save()
 
 void Plane::efi_update(void)
 {
-#if HAL_EFI_ENABLED
+#if EFI_ENABLED
     g2.efi.update();
 #endif
 }
@@ -651,7 +654,7 @@ bool Plane::get_wp_crosstrack_error_m(float &xtrack_error) const
     return true;
 }
 
-#ifdef ENABLE_SCRIPTING
+
 // set target location (for use by scripting)
 bool Plane::set_target_location(const Location& target_loc)
 {
@@ -689,6 +692,5 @@ bool Plane::get_target_location(Location& target_loc)
     }
     return false;
 }
-#endif // ENABLE_SCRIPTING
 
 AP_HAL_MAIN_CALLBACKS(&plane);

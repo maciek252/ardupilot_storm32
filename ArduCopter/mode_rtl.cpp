@@ -22,8 +22,6 @@ bool ModeRTL::init(bool ignore_checks)
     _state = SubMode::STARTING;
     _state_complete = true; // see run() method below
     terrain_following_allowed = !copter.failsafe.terrain;
-    // reset flag indicating if pilot has applied roll or pitch inputs during landing
-    copter.ap.land_repo_active = false;
     return true;
 }
 
@@ -153,7 +151,7 @@ void ModeRTL::climb_return_run()
 {
     // if not armed set throttle to zero and exit immediately
     if (is_disarmed_or_landed()) {
-        make_safe_ground_handling();
+        make_safe_spool_down();
         return;
     }
 
@@ -173,8 +171,7 @@ void ModeRTL::climb_return_run()
     // run waypoint controller
     copter.failsafe_terrain_set_status(wp_nav->update_wpnav());
 
-    // WP_Nav has set the vertical position control targets
-    // run the vertical position controller and set output throttle
+    // call z-axis position controller (wpnav should have already updated it's alt target)
     pos_control->update_z_controller();
 
     // call attitude controller
@@ -211,7 +208,7 @@ void ModeRTL::loiterathome_run()
 {
     // if not armed set throttle to zero and exit immediately
     if (is_disarmed_or_landed()) {
-        make_safe_ground_handling();
+        make_safe_spool_down();
         return;
     }
 
@@ -231,8 +228,7 @@ void ModeRTL::loiterathome_run()
     // run waypoint controller
     copter.failsafe_terrain_set_status(wp_nav->update_wpnav());
 
-    // WP_Nav has set the vertical position control targets
-    // run the vertical position controller and set output throttle
+    // call z-axis position controller (wpnav should have already updated it's alt target)
     pos_control->update_z_controller();
 
     // call attitude controller
@@ -265,10 +261,10 @@ void ModeRTL::descent_start()
     _state_complete = false;
 
     // Set wp navigation target to above home
-    loiter_nav->init_target(wp_nav->get_wp_destination().xy());
+    loiter_nav->init_target(wp_nav->get_wp_destination());
 
     // initialise altitude target to stopping point
-    pos_control->init_z_controller_stopping_point();
+    pos_control->set_target_to_stopping_point_z();
 
     // initialise yaw
     auto_yaw.set_mode(AUTO_YAW_HOLD);
@@ -294,7 +290,7 @@ void ModeRTL::descent_run()
 
     // if not armed set throttle to zero and exit immediately
     if (is_disarmed_or_landed()) {
-        make_safe_ground_handling();
+        make_safe_spool_down();
         return;
     }
 
@@ -334,14 +330,13 @@ void ModeRTL::descent_run()
     motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 
     // process roll, pitch inputs
-    loiter_nav->set_pilot_desired_acceleration(target_roll, target_pitch);
+    loiter_nav->set_pilot_desired_acceleration(target_roll, target_pitch, G_Dt);
 
     // run loiter controller
     loiter_nav->update();
 
-    // WP_Nav has set the vertical position control targets
-    // run the vertical position controller and set output throttle
-    pos_control->set_alt_target_with_slew(rtl_path.descent_target.alt);
+    // call z-axis position controller
+    pos_control->set_alt_target_with_slew(rtl_path.descent_target.alt, G_Dt);
     pos_control->update_z_controller();
 
     // roll & pitch from waypoint controller, yaw rate from pilot
@@ -358,11 +353,12 @@ void ModeRTL::land_start()
     _state_complete = false;
 
     // Set wp navigation target to above home
-    loiter_nav->init_target(wp_nav->get_wp_destination().xy());
+    loiter_nav->init_target(wp_nav->get_wp_destination());
 
-    // initialise the vertical position controller
+    // initialise position and desired velocity
     if (!pos_control->is_active_z()) {
-        pos_control->init_z_controller();
+        pos_control->set_alt_target_to_current_alt();
+        pos_control->set_desired_velocity_z(inertial_nav.get_velocity_z());
     }
 
     // initialise yaw
@@ -398,7 +394,7 @@ void ModeRTL::land_run(bool disarm_on_land)
 
     // if not armed set throttle to zero and exit immediately
     if (is_disarmed_or_landed()) {
-        make_safe_ground_handling();
+        make_safe_spool_down();
         loiter_nav->clear_pilot_desired_acceleration();
         loiter_nav->init_target();
         return;
@@ -414,10 +410,10 @@ void ModeRTL::land_run(bool disarm_on_land)
 void ModeRTL::build_path()
 {
     // origin point is our stopping point
-    Vector3p stopping_point;
-    pos_control->get_stopping_point_xy_cm(stopping_point.xy());
-    pos_control->get_stopping_point_z_cm(stopping_point.z);
-    rtl_path.origin_point = Location(stopping_point.tofloat(), Location::AltFrame::ABOVE_ORIGIN);
+    Vector3f stopping_point;
+    pos_control->get_stopping_point_xy(stopping_point);
+    pos_control->get_stopping_point_z(stopping_point);
+    rtl_path.origin_point = Location(stopping_point, Location::AltFrame::ABOVE_ORIGIN);
     rtl_path.origin_point.change_alt_frame(Location::AltFrame::ABOVE_HOME);
 
     // compute return target

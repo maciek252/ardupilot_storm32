@@ -17,7 +17,7 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
-#if HAL_ENABLE_LIBUAVCAN_DRIVERS
+#if HAL_MAX_CAN_PROTOCOL_DRIVERS
 
 #include <uavcan/uavcan.hpp>
 

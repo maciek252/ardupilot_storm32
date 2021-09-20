@@ -19,9 +19,9 @@ export CHIBIOS_GIT_VERSION="ci_test"
 export CCACHE_SLOPPINESS="include_file_ctime,include_file_mtime"
 autotest_args=""
 
-# If CI_BUILD_TARGET is not set, build 4 different ones
+# If CI_BUILD_TARGET is not set, build 3 different ones
 if [ -z "$CI_BUILD_TARGET" ]; then
-    CI_BUILD_TARGET="sitl linux fmuv3 omnibusf4pro-one"
+    CI_BUILD_TARGET="sitl linux fmuv3"
 fi
 
 waf=modules/waf/waf-light

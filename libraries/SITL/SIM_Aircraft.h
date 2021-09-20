@@ -127,8 +127,7 @@ public:
 
     const Location &get_location() const { return location; }
 
-    // get position relative to home
-    Vector3d get_position_relhome() const;
+    const Vector3f &get_position() const { return position; }
 
     // distance the rangefinder is perceiving
     float rangefinder_range() const;
@@ -150,13 +149,8 @@ public:
     void set_precland(SIM_Precland *_precland);
     void set_i2c(class I2C *_i2c) { i2c = _i2c; }
 
-    float get_battery_voltage() const { return battery_voltage; }
-
 protected:
     SITL *sitl;
-    // origin of position vector
-    Location origin;
-    // home location
     Location home;
     bool home_is_set;
     Location location;
@@ -170,7 +164,7 @@ protected:
     Vector3f wind_ef;                    // m/s, earth frame
     Vector3f velocity_air_ef;            // velocity relative to airmass, earth frame
     Vector3f velocity_air_bf;            // velocity relative to airmass, body frame
-    Vector3d position;                   // meters, NED from origin
+    Vector3f position;                   // meters, NED from origin
     float mass;                          // kg
     float external_payload_mass;         // kg
     Vector3f accel_body{0.0f, 0.0f, -GRAVITY_MSS}; // m/s/s NED, body frame
@@ -179,8 +173,6 @@ protected:
     float battery_voltage = -1.0f;
     float battery_current;
     float local_ground_level;            // ground level at local position
-    bool lock_step_scheduled;
-    uint32_t last_one_hz_ms;
 
     // battery model
     Battery battery;
@@ -302,7 +294,7 @@ protected:
     void add_twist_forces(Vector3f &rot_accel);
 
     // get local thermal updraft
-    float get_local_updraft(const Vector3d &currentPos);
+    float get_local_updraft(Vector3f currentPos);
 
 private:
     uint64_t last_time_us;
@@ -318,13 +310,13 @@ private:
         Vector3f accel_body;
         Vector3f gyro;
         Matrix3f rotation_b2e;
-        Vector3d position;
+        Vector3f position;
         Vector3f velocity_ef;
         uint64_t last_update_us;
         Location location;
     } smoothing;
 
-    LowPassFilterFloat servo_filter[5];
+    LowPassFilterFloat servo_filter[4];
 
     Buzzer *buzzer;
     Sprayer *sprayer;

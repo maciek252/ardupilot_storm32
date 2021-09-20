@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Oliver Walters / Currawong Engineering Pty Ltd
+ * Author: Oliver Walters
  */
 
 #include "fieldencode.h"

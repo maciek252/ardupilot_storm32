@@ -61,7 +61,6 @@ protected:
 
     bool WritesOK() const override;
     bool StartNewLogOK() const override;
-    void PrepForArming_start_logging() override;
 
 private:
     int _write_fd = -1;
@@ -135,8 +134,6 @@ private:
     void erase_next(void);
 
     const char *last_io_operation = "";
-
-    bool start_new_log_pending;
 };
 
 #endif // HAL_LOGGING_FILESYSTEM_ENABLED

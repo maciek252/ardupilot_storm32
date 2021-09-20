@@ -2,6 +2,16 @@
 
 #include "defines.h"
 
+//////////////////////////////////////////////////////////////////////////////
+// sensor types
+
+//////////////////////////////////////////////////////////////////////////////
+// HIL_MODE                                 OPTIONAL
+
+#ifndef HIL_MODE
+  #define HIL_MODE HIL_MODE_DISABLED
+#endif
+
 #ifndef MAV_SYSTEM_ID
   #define MAV_SYSTEM_ID    1
 #endif

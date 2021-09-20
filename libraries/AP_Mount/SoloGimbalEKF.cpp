@@ -41,7 +41,7 @@ SoloGimbalEKF::SoloGimbalEKF() :
 // complete reset
 void SoloGimbalEKF::reset()
 {
-    ZERO_FARRAY(states);
+    memset(&states,0,sizeof(states));
     memset((void *)&gSense,0,sizeof(gSense));
     memset(&Cov,0,sizeof(Cov));
     TiltCorrectionSquared = 0;

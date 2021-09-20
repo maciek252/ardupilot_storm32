@@ -215,11 +215,12 @@ public:
      */
     void send_dshot_command(uint8_t command, uint8_t chan, uint32_t command_timeout_ms = 0, uint16_t repeat_count = 10, bool priority = false) override;
 
-    /*
-     * Update channel masks at 1Hz allowing for actions such as dshot commands to be sent
-     */
-    void update_channel_masks() override;
 #endif
+
+    /*
+      If not already done flush any dshot commands still pending
+     */
+    bool prepare_for_arming() override;
 
     /*
       setup serial LED output for a given channel number, with

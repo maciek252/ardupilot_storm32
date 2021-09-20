@@ -64,15 +64,6 @@ bool Plane::stick_mixing_enabled(void)
 #else
     const bool stickmixing = true;
 #endif
-    if (control_mode == &mode_qrtl &&
-        quadplane.poscontrol.get_state() >= QuadPlane::QPOS_POSITION1) {
-        // user may be repositioning
-        return false;
-    }
-    if (quadplane.in_vtol_land_poscontrol()) {
-        // user may be repositioning
-        return false;
-    }
     if (control_mode->does_auto_throttle() && plane.control_mode->does_auto_navigation()) {
         // we're in an auto mode. Check the stick mixing flag
         if (g.stick_mixing != STICK_MIXING_DISABLED &&
@@ -118,19 +109,9 @@ void Plane::stabilize_roll(float speed_scaler)
     if (control_mode == &mode_stabilize && channel_roll->get_control_in() != 0) {
         disable_integrator = true;
     }
-    int32_t roll_out;
-    if (!quadplane.use_fw_attitude_controllers()) {
-        // use the VTOL rate for control, to ensure consistency
-        const auto &pid_info = quadplane.attitude_control->get_rate_roll_pid().get_pid_info();
-        roll_out = rollController.get_rate_out(degrees(pid_info.target), speed_scaler);
-        /* when slaving fixed wing control to VTOL control we need to decay the integrator to prevent
-           opposing integrators balancing between the two controllers
-        */
-        rollController.decay_I();
-    } else {
-        roll_out = rollController.get_servo_out(nav_roll_cd - ahrs.roll_sensor, speed_scaler, disable_integrator);
-    }
-    SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, roll_out);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rollController.get_servo_out(nav_roll_cd - ahrs.roll_sensor, 
+                                                                                         speed_scaler, 
+                                                                                         disable_integrator));
 }
 
 /*
@@ -153,28 +134,14 @@ void Plane::stabilize_pitch(float speed_scaler)
         disable_integrator = true;
     }
 
-    int32_t pitch_out;
-    if (!quadplane.use_fw_attitude_controllers()) {
-        // use the VTOL rate for control, to ensure consistency
-        const auto &pid_info = quadplane.attitude_control->get_rate_pitch_pid().get_pid_info();
-        pitch_out = pitchController.get_rate_out(degrees(pid_info.target), speed_scaler);
-        /* when slaving fixed wing control to VTOL control we need to decay the integrator to prevent
-           opposing integrators balancing between the two controllers
-        */
-        pitchController.decay_I();
-    } else {
-        // if LANDING_FLARE RCx_OPTION switch is set and in FW mode, manual throttle,throttle idle then set pitch to LAND_PITCH_CD if flight option FORCE_FLARE_ATTITUDE is set
-        if (!quadplane.in_transition() &&
-            !control_mode->is_vtol_mode() &&
-            channel_throttle->in_trim_dz() &&
-            !control_mode->does_auto_throttle() &&
-            flare_mode == FlareMode::ENABLED_PITCH_TARGET) {
-            demanded_pitch = landing.get_pitch_cd();
-        }
+   // if LANDING_FLARE RCx_OPTION switch is set and in FW mode, manual throttle,throttle idle then set pitch to LAND_PITCH_CD if flight option FORCE_FLARE_ATTITUDE is set
+    if (!quadplane.in_transition() && !control_mode->is_vtol_mode() && channel_throttle->in_trim_dz() && !control_mode->does_auto_throttle() && flare_mode == FlareMode::ENABLED_PITCH_TARGET) {
+       demanded_pitch = landing.get_pitch_cd();
+   }
 
-        pitch_out = pitchController.get_servo_out(demanded_pitch - ahrs.pitch_sensor, speed_scaler, disable_integrator);
-    }
-    SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pitch_out);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pitchController.get_servo_out(demanded_pitch - ahrs.pitch_sensor, 
+                                                                                           speed_scaler, 
+                                                                                           disable_integrator));
 }
 
 /*
@@ -312,28 +279,26 @@ void Plane::stabilize_yaw(float speed_scaler)
  */
 void Plane::stabilize_training(float speed_scaler)
 {
-    const float rexpo = roll_in_expo(false);
-    const float pexpo = pitch_in_expo(false);
     if (training_manual_roll) {
-        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rexpo);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, channel_roll->get_control_in());
     } else {
         // calculate what is needed to hold
         stabilize_roll(speed_scaler);
-        if ((nav_roll_cd > 0 && rexpo < SRV_Channels::get_output_scaled(SRV_Channel::k_aileron)) ||
-            (nav_roll_cd < 0 && rexpo > SRV_Channels::get_output_scaled(SRV_Channel::k_aileron))) {
+        if ((nav_roll_cd > 0 && channel_roll->get_control_in() < SRV_Channels::get_output_scaled(SRV_Channel::k_aileron)) ||
+            (nav_roll_cd < 0 && channel_roll->get_control_in() > SRV_Channels::get_output_scaled(SRV_Channel::k_aileron))) {
             // allow user to get out of the roll
-            SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, rexpo);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, channel_roll->get_control_in());
         }
     }
 
     if (training_manual_pitch) {
-        SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pexpo);
+        SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, channel_pitch->get_control_in());
     } else {
         stabilize_pitch(speed_scaler);
-        if ((nav_pitch_cd > 0 && pexpo < SRV_Channels::get_output_scaled(SRV_Channel::k_elevator)) ||
-            (nav_pitch_cd < 0 && pexpo > SRV_Channels::get_output_scaled(SRV_Channel::k_elevator))) {
+        if ((nav_pitch_cd > 0 && channel_pitch->get_control_in() < SRV_Channels::get_output_scaled(SRV_Channel::k_elevator)) ||
+            (nav_pitch_cd < 0 && channel_pitch->get_control_in() > SRV_Channels::get_output_scaled(SRV_Channel::k_elevator))) {
             // allow user to get back to level
-            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, pexpo);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, channel_pitch->get_control_in());
         }
     }
 
@@ -347,10 +312,8 @@ void Plane::stabilize_training(float speed_scaler)
  */
 void Plane::stabilize_acro(float speed_scaler)
 {
-    const float rexpo = roll_in_expo(true);
-    const float pexpo = pitch_in_expo(true);
-    float roll_rate = (rexpo/float(SERVO_MAX)) * g.acro_roll_rate;
-    float pitch_rate = (pexpo/float(SERVO_MAX)) * g.acro_pitch_rate;
+    float roll_rate = (channel_roll->get_control_in()/4500.0f) * g.acro_roll_rate;
+    float pitch_rate = (channel_pitch->get_control_in()/4500.0f) * g.acro_pitch_rate;
 
     /*
       check for special roll handling near the pitch poles

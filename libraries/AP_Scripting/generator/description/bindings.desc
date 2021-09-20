@@ -34,7 +34,6 @@ singleton AP_AHRS method wind_estimate Vector3f
 singleton AP_AHRS method groundspeed_vector Vector2f
 singleton AP_AHRS method get_velocity_NED boolean Vector3f'Null
 singleton AP_AHRS method get_relative_position_NED_home boolean Vector3f'Null
-singleton AP_AHRS method get_relative_position_NED_origin boolean Vector3f'Null
 singleton AP_AHRS method home_is_set boolean
 singleton AP_AHRS method healthy boolean
 singleton AP_AHRS method airspeed_estimate boolean float'Null
@@ -45,8 +44,6 @@ singleton AP_AHRS method get_EAS2TAS float
 singleton AP_AHRS method get_variances boolean float'Null float'Null float'Null Vector3f'Null float'Null
 singleton AP_AHRS method set_posvelyaw_source_set void uint8_t 0 2
 singleton AP_AHRS method get_vel_innovations_and_variances_for_source boolean uint8_t 3 6 Vector3f'Null Vector3f'Null
-singleton AP_AHRS method set_home boolean Location
-singleton AP_AHRS method get_origin boolean Location'Null
 
 include AP_Arming/AP_Arming.h
 
@@ -189,18 +186,13 @@ singleton AP_Vehicle method get_mode uint8_t
 singleton AP_Vehicle method get_control_mode_reason uint8_t
 singleton AP_Vehicle method get_likely_flying boolean
 singleton AP_Vehicle method get_time_flying_ms uint32_t
-singleton AP_Vehicle method get_control_output boolean AP_Vehicle::ControlOutput'enum AP_Vehicle::ControlOutput::Roll ((uint32_t)AP_Vehicle::ControlOutput::Last_ControlOutput-1) float'Null
 singleton AP_Vehicle method start_takeoff boolean float (-LOCATION_ALT_MAX_M*100+1) (LOCATION_ALT_MAX_M*100-1)
 singleton AP_Vehicle method set_target_location boolean Location
-singleton AP_Vehicle method get_target_location boolean Location'Null
-singleton AP_Vehicle method set_target_pos_NED boolean Vector3f boolean float -360 +360 boolean float -FLT_MAX FLT_MAX boolean boolean
 singleton AP_Vehicle method set_target_posvel_NED boolean Vector3f Vector3f
-singleton AP_Vehicle method set_target_posvelaccel_NED boolean Vector3f Vector3f Vector3f boolean float -360 +360 boolean float -FLT_MAX FLT_MAX boolean
-singleton AP_Vehicle method set_target_velaccel_NED boolean Vector3f Vector3f boolean float -360 +360 boolean float -FLT_MAX FLT_MAX boolean
+singleton AP_Vehicle method get_control_output boolean AP_Vehicle::ControlOutput'enum AP_Vehicle::ControlOutput::Roll ((uint32_t)AP_Vehicle::ControlOutput::Last_ControlOutput-1) float'Null
+singleton AP_Vehicle method get_target_location boolean Location'Null
 singleton AP_Vehicle method set_target_velocity_NED boolean Vector3f
 singleton AP_Vehicle method set_target_angle_and_climbrate boolean float -180 180 float -90 90 float -360 360 float -FLT_MAX FLT_MAX boolean float -FLT_MAX FLT_MAX
-singleton AP_Vehicle method get_circle_radius boolean float'Null
-singleton AP_Vehicle method set_circle_rate boolean float -FLT_MAX FLT_MAX
 singleton AP_Vehicle method set_steering_and_throttle boolean float -1 1 float -1 1
 singleton AP_Vehicle method get_wp_distance_m boolean float'Null
 singleton AP_Vehicle method get_wp_bearing_deg boolean float'Null
@@ -331,7 +323,6 @@ singleton AP_MotorsMatrix depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)||APM_BUILD
 singleton AP_MotorsMatrix alias MotorsMatrix
 singleton AP_MotorsMatrix method init boolean uint8_t 0 (AP_MOTORS_MAX_NUM_MOTORS-1)
 singleton AP_MotorsMatrix method add_motor_raw void int8_t 0 (AP_MOTORS_MAX_NUM_MOTORS-1) float -FLT_MAX FLT_MAX float -FLT_MAX FLT_MAX float -FLT_MAX FLT_MAX uint8_t 0 (AP_MOTORS_MAX_NUM_MOTORS-1)
-singleton AP_MotorsMatrix method set_throttle_factor boolean int8_t 0 (AP_MOTORS_MAX_NUM_MOTORS-1) float 0 FLT_MAX
 
 include AP_Frsky_Telem/AP_Frsky_SPort.h
 singleton AP_Frsky_SPort alias frsky_sport

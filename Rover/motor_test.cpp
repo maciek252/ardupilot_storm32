@@ -124,9 +124,7 @@ MAV_RESULT Rover::mavlink_motor_test_start(const GCS_MAVLINK &gcs_chan, AP_Motor
 
             // arm motors
             if (!arming.is_armed()) {
-                if (!arming.arm(AP_Arming::Method::MOTORTEST)) {
-                    return MAV_RESULT_FAILED;
-                }
+                arming.arm(AP_Arming::Method::MOTORTEST);
             }
 
             // disable failsafes

@@ -191,7 +191,6 @@ void SRV_Channels::update_aux_servo_function(void)
 }
 
 /// Should be called after the the servo functions have been initialized
-/// called at 1Hz
 void SRV_Channels::enable_aux_servos()
 {
     hal.rcout->set_default_rate(uint16_t(_singleton->default_rate.get()));
@@ -221,9 +220,6 @@ void SRV_Channels::enable_aux_servos()
             c.output_ch();
         }
     }
-
-    // propagate channel masks to the ESCS
-    hal.rcout->update_channel_masks();
 
 #if HAL_SUPPORT_RCOUT_SERIAL
     blheli_ptr->update();
@@ -452,9 +448,6 @@ SRV_Channels::set_output_limit(SRV_Channel::Aux_servo_function_t function, SRV_C
 bool
 SRV_Channels::function_assigned(SRV_Channel::Aux_servo_function_t function)
 {
-    if (!initialised) {
-        update_aux_servo_function();
-    }
     return function_mask.get(uint16_t(function));
 }
 
@@ -489,6 +482,9 @@ SRV_Channels::move_servo(SRV_Channel::Aux_servo_function_t function,
  */
 bool SRV_Channels::set_aux_channel_default(SRV_Channel::Aux_servo_function_t function, uint8_t channel)
 {
+    if (!initialised) {
+        update_aux_servo_function();
+    }
     if (function_assigned(function)) {
         // already assigned
         return true;
@@ -513,6 +509,9 @@ bool SRV_Channels::set_aux_channel_default(SRV_Channel::Aux_servo_function_t fun
 // find first channel that a function is assigned to
 bool SRV_Channels::find_channel(SRV_Channel::Aux_servo_function_t function, uint8_t &chan)
 {
+    if (!initialised) {
+        update_aux_servo_function();
+    }
     if (!function_assigned(function)) {
         return false;
     }

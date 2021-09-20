@@ -83,27 +83,12 @@ template float safe_sqrt<float>(const float v);
 template float safe_sqrt<double>(const double v);
 
 /*
-  replacement for std::swap() needed for STM32
- */
-static void swap_float(float &f1, float &f2)
-{
-    float tmp = f1;
-    f1 = f2;
-    f2 = tmp;
-}
-
-/*
  * linear interpolation based on a variable in a range
  */
 float linear_interpolate(float low_output, float high_output,
                          float var_value,
                          float var_low, float var_high)
 {
-    if (var_low > var_high) {
-        // support either polarity
-        swap_float(var_low, var_high);
-        swap_float(low_output, high_output);
-    }
     if (var_value <= var_low) {
         return low_output;
     }
@@ -118,7 +103,7 @@ float linear_interpolate(float low_output, float high_output,
  * alpha range: [0,1] min to max expo
  * input range: [-1,1]
  */
-float expo_curve(float alpha, float x)
+constexpr float expo_curve(float alpha, float x)
 {
     return (1.0f - alpha) * x + alpha * x * x * x;
 }
@@ -244,24 +229,35 @@ long wrap_360_cd(const long angle)
     }
     return res;
 }
-
-ftype wrap_PI(const ftype radian)
+template <typename T>
+float wrap_PI(const T radian)
 {
-    ftype res = wrap_2PI(radian);
+    auto res = wrap_2PI(radian);
     if (res > M_PI) {
         res -= M_2PI;
     }
     return res;
 }
 
-ftype wrap_2PI(const ftype radian)
+template float wrap_PI<int>(const int radian);
+template float wrap_PI<short>(const short radian);
+template float wrap_PI<float>(const float radian);
+template float wrap_PI<double>(const double radian);
+
+template <typename T>
+float wrap_2PI(const T radian)
 {
-    ftype res = fmodF(radian, M_2PI);
+    float res = fmodf(static_cast<float>(radian), M_2PI);
     if (res < 0) {
         res += M_2PI;
     }
     return res;
 }
+
+template float wrap_2PI<int>(const int radian);
+template float wrap_2PI<short>(const short radian);
+template float wrap_2PI<float>(const float radian);
+template float wrap_2PI<double>(const double radian);
 
 template <typename T>
 T constrain_value_line(const T amt, const T low, const T high, uint32_t line)
@@ -286,7 +282,6 @@ T constrain_value_line(const T amt, const T low, const T high, uint32_t line)
 }
 
 template float constrain_value_line<float>(const float amt, const float low, const float high, uint32_t line);
-template double constrain_value_line<double>(const double amt, const double low, const double high, uint32_t line);
 
 template <typename T>
 T constrain_value(const T amt, const T low, const T high)
@@ -376,15 +371,15 @@ bool rotation_equal(enum Rotation r1, enum Rotation r2)
  * rot_ef_to_bf is a rotation matrix to rotate from earth-frame (NED) to body frame
  * angular_rate is rad/sec
  */
-Vector3F get_vel_correction_for_sensor_offset(const Vector3F &sensor_offset_bf, const Matrix3F &rot_ef_to_bf, const Vector3F &angular_rate)
+Vector3f get_vel_correction_for_sensor_offset(const Vector3f &sensor_offset_bf, const Matrix3f &rot_ef_to_bf, const Vector3f &angular_rate)
 {
     if (sensor_offset_bf.is_zero()) {
-        return Vector3F();
+        return Vector3f();
     }
 
     // correct velocity
-    const Vector3F vel_offset_body = angular_rate % sensor_offset_bf;
-    return rot_ef_to_bf.mul_transpose(vel_offset_body) * -1.0;
+    const Vector3f vel_offset_body = angular_rate % sensor_offset_bf;
+    return rot_ef_to_bf.mul_transpose(vel_offset_body) * -1.0f;
 }
 
 /*
@@ -406,13 +401,6 @@ void fill_nanf(float *f, uint16_t count)
     const float n = std::numeric_limits<float>::signaling_NaN();
     while (count--) {
         *f++ = n;
-    }
-}
-
-void fill_nanf(double *f, uint16_t count)
-{
-    while (count--) {
-        *f++ = std::numeric_limits<double>::signaling_NaN();
     }
 }
 #endif

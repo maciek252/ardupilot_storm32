@@ -116,7 +116,6 @@ enum log_messages {
 #define MASK_LOG_SONAR                  (1<<14)
 // #define MASK_LOG_ARM_DISARM             (1<<15)
 #define MASK_LOG_IMU_RAW                (1UL<<19)
-#define MASK_LOG_ATTITUDE_FULLRATE      (1U<<20)
 
 // altitude control algorithms
 enum {
@@ -146,10 +145,6 @@ enum {
     USE_REVERSE_THRUST_FBWB                     = (1<<9),
     USE_REVERSE_THRUST_GUIDED                   = (1<<10),
     USE_REVERSE_THRUST_AUTO_LANDING_PATTERN     = (1<<11),
-    USE_REVERSE_THRUST_FBWA                   = (1<<12),
-    USE_REVERSE_THRUST_ACRO                   = (1<<13),
-    USE_REVERSE_THRUST_STABILIZE            = (1<<14),
-    USE_REVERSE_THRUST_THERMAL             = (1<<15),
 };
 
 enum FlightOptions {
@@ -160,7 +155,6 @@ enum FlightOptions {
     CLIMB_BEFORE_TURN = (1 << 4),
     ACRO_YAW_DAMPER = (1 << 5),
     SURPRESS_TKOFF_SCALING = (1<<6),
-    ENABLE_DEFAULT_AIRSPEED = (1<<7),
 };
 
 enum CrowFlapOptions {
