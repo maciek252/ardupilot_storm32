@@ -86,13 +86,9 @@ uint8_t AP_ESC_Telem::get_num_active_escs() const {
 // get an individual ESC's slewed rpm if available, returns true on success
 bool AP_ESC_Telem::get_rpm(uint8_t esc_index, float& rpm) const
 {
-    if (esc_index >= ESC_TELEM_MAX_ESCS) {
-        return false;
-    }
-
     const volatile AP_ESC_Telem_Backend::RpmData& rpmdata = _rpm_data[esc_index];
 
-    if (is_zero(rpmdata.update_rate_hz)) {
+    if (esc_index > ESC_TELEM_MAX_ESCS || is_zero(rpmdata.update_rate_hz)) {
         return false;
     }
 
@@ -109,15 +105,12 @@ bool AP_ESC_Telem::get_rpm(uint8_t esc_index, float& rpm) const
 // get an individual ESC's raw rpm if available, returns true on success
 bool AP_ESC_Telem::get_raw_rpm(uint8_t esc_index, float& rpm) const
 {
-    if (esc_index >= ESC_TELEM_MAX_ESCS) {
-        return false;
-    }
-
     const volatile AP_ESC_Telem_Backend::RpmData& rpmdata = _rpm_data[esc_index];
 
     const uint32_t now = AP_HAL::micros();
 
-    if (now < rpmdata.last_update_us || now - rpmdata.last_update_us > ESC_RPM_DATA_TIMEOUT_US) {
+    if (esc_index >= ESC_TELEM_MAX_ESCS || now < rpmdata.last_update_us
+        || now - rpmdata.last_update_us > ESC_RPM_DATA_TIMEOUT_US) {
         return false;
     }
 
@@ -202,11 +195,6 @@ void AP_ESC_Telem::send_esc_telemetry_mavlink(uint8_t mav_chan)
 {
     static_assert(ESC_TELEM_MAX_ESCS <= 12, "AP_ESC_Telem::send_esc_telemetry_mavlink() only supports up-to 12 motors");
 
-    if (!_have_data) {
-        // we've never had any data
-        return;
-    }
-
     uint32_t now = AP_HAL::millis();
     uint32_t now_us = AP_HAL::micros();
     // loop through 3 groups of 4 ESCs
@@ -276,11 +264,9 @@ void AP_ESC_Telem::update_telem_data(const uint8_t esc_index, const AP_ESC_Telem
     // can only get slightly more up-to-date information that perhaps they were expecting or might
     // read data that has just gone stale - both of these are safe and avoid the overhead of locking
 
-    if (esc_index >= ESC_TELEM_MAX_ESCS) {
+    if (esc_index > ESC_TELEM_MAX_ESCS) {
         return;
     }
-
-    _have_data = true;
 
     if (data_mask & AP_ESC_Telem_Backend::TelemetryType::TEMPERATURE) {
         _telem_data[esc_index].temperature_cdeg = new_data.temperature_cdeg;
@@ -310,12 +296,9 @@ void AP_ESC_Telem::update_telem_data(const uint8_t esc_index, const AP_ESC_Telem
 // this should be called by backends when new telemetry values are available
 void AP_ESC_Telem::update_rpm(const uint8_t esc_index, const uint16_t new_rpm, const float error_rate)
 {
-    if (esc_index >= ESC_TELEM_MAX_ESCS) {
+    if (esc_index > ESC_TELEM_MAX_ESCS) {
         return;
     }
-
-    _have_data = true;
-
     const uint32_t now = AP_HAL::micros();
     volatile AP_ESC_Telem_Backend::RpmData& rpmdata = _rpm_data[esc_index];
 

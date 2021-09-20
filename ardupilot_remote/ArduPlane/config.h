@@ -257,6 +257,10 @@
  # define FENCE_TRIGGERED_PIN -1
 #endif
 
+#ifndef HIL_SUPPORT
+# define HIL_SUPPORT !HAL_MINIMIZE_FEATURES
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // Parachute release
 #ifndef PARACHUTE

@@ -46,7 +46,6 @@ Sailboat::Sailboat(const char *frame_str) :
     sail_area(1.0)
 {
     motor_connected = (strcmp(frame_str, "sailboat-motor") == 0);
-    lock_step_scheduled = true;
 }
 
 // calculate the lift and drag as values from 0 to 1
@@ -294,7 +293,7 @@ void Sailboat::update(const struct sitl_input &input)
     velocity_ef = velocity_ef_water + tide_velocity_ef;
 
     // new position vector
-    position += (velocity_ef * delta_time).todouble();
+    position += velocity_ef * delta_time;
 
     // update lat/lon/altitude
     update_position();

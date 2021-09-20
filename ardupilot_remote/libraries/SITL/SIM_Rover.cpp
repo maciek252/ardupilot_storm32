@@ -41,7 +41,6 @@ SimRover::SimRover(const char *frame_str) :
     if (vectored_thrust) {
         printf("Vectored Thrust Rover Simulation Started\n");
     }
-    lock_step_scheduled = true;
 }
 
 
@@ -158,7 +157,7 @@ void SimRover::update(const struct sitl_input &input)
     velocity_ef += accel_earth * delta_time;
 
     // new position vector
-    position += (velocity_ef * delta_time).todouble();
+    position += velocity_ef * delta_time;
 
     update_external_payload(input);
 

@@ -56,7 +56,7 @@ public:
 
     // return the last time telemetry data was received in ms for the given ESC or 0 if never
     uint32_t get_last_telem_data_ms(uint8_t esc_index) const {
-        if (esc_index >= ESC_TELEM_MAX_ESCS) {return 0;}
+        if (esc_index > ESC_TELEM_MAX_ESCS) return 0;
         return _telem_data[esc_index].last_update_ms;
     }
 
@@ -79,8 +79,6 @@ private:
 
     uint32_t _last_telem_log_ms[ESC_TELEM_MAX_ESCS];
     uint32_t _last_rpm_log_us[ESC_TELEM_MAX_ESCS];
-
-    bool _have_data;
 
     static AP_ESC_Telem *_singleton;
 };

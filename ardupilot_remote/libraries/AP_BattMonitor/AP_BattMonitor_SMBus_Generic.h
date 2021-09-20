@@ -2,11 +2,7 @@
 
 #include "AP_BattMonitor_SMBus.h"
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-#define BATTMONITOR_SMBUS_NUM_CELLS_MAX 14
-#else
 #define BATTMONITOR_SMBUS_NUM_CELLS_MAX 12
-#endif
 
 class AP_BattMonitor_SMBus_Generic : public AP_BattMonitor_SMBus
 {

@@ -573,15 +573,9 @@ bool AP_Arming_Copter::mandatory_gps_checks(bool display_failure)
         }
     }
 
-    // check if home is too far from EKF origin
+    // check home and EKF origin are not too far
     if (copter.far_from_EKF_origin(ahrs.get_home())) {
-        check_failed(display_failure, "Home too far from EKF origin");
-        return false;
-    }
-
-    // check if vehicle is too far from EKF origin
-    if (copter.far_from_EKF_origin(copter.current_loc)) {
-        check_failed(display_failure, "Vehicle too far from EKF origin");
+        check_failed(display_failure, "EKF-home variance");
         return false;
     }
 
@@ -807,7 +801,7 @@ bool AP_Arming_Copter::arm(const AP_Arming::Method method, const bool do_arming_
         AP::notify().update();
     }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if HIL_MODE != HIL_MODE_DISABLED || CONFIG_HAL_BOARD == HAL_BOARD_SITL
     gcs().send_text(MAV_SEVERITY_INFO, "Arming motors");
 #endif
 
@@ -901,7 +895,7 @@ bool AP_Arming_Copter::disarm(const AP_Arming::Method method, bool do_disarm_che
         return false;
     }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if HIL_MODE != HIL_MODE_DISABLED || CONFIG_HAL_BOARD == HAL_BOARD_SITL
     gcs().send_text(MAV_SEVERITY_INFO, "Disarming motors");
 #endif
 

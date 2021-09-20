@@ -142,7 +142,7 @@ void Scheduler::delay_microseconds(uint16_t usec)
         // calling with ticks == 0 causes a hard fault on ChibiOS
         ticks = 1;
     }
-    chThdSleep(MAX(ticks,CH_CFG_ST_TIMEDELTA)); //Suspends Thread for desired microseconds
+    chThdSleep(ticks); //Suspends Thread for desired microseconds
 }
 
 /*
@@ -572,16 +572,16 @@ void Scheduler::_storage_thread(void* arg)
         sched->delay_microseconds(10000);
     }
 #if defined STM32H7
-    uint16_t memcheck_counter=0;
+    uint8_t memcheck_counter=0;
 #endif
     while (true) {
-        sched->delay_microseconds(1000);
+        sched->delay_microseconds(10000);
 
         // process any pending storage writes
         hal.storage->_timer_tick();
 
 #if defined STM32H7
-        if (memcheck_counter++ % 500 == 0) {
+        if (memcheck_counter++ % 50 == 0) {
             // run check at 2Hz
             sched->check_low_memory_is_zero();
         }

@@ -565,7 +565,6 @@ is bob we will attempt to checkout bob-AVR'''
                 "fmuv5",
                 "mindpx-v2",
                 "erlebrain2",
-                "navigator",
                 "navio",
                 "navio2",
                 "edge",
@@ -581,7 +580,6 @@ is bob we will attempt to checkout bob-AVR'''
                 "MatekF405-STD",
                 "MatekF405-Wing",
                 "MatekF765-Wing",
-                "MatekF765-SE",
                 "MatekF405-CAN",
                 "MatekH743",
                 "MatekH743-bdshot",
@@ -622,9 +620,6 @@ is bob we will attempt to checkout bob-AVR'''
                 "mRoPixracerPro",
                 "mRoPixracerPro-bdshot",
                 "mRoControlZeroOEMH7",
-                "mRoControlZeroClassic",
-                "mRoControlZeroH7",
-                "mRoControlZeroH7-bdshot",
                 "F35Lightning",
                 "speedybeef4",
                 "SuccexF4",
@@ -670,7 +665,6 @@ is bob we will attempt to checkout bob-AVR'''
                 "MatekH743-periph",
                 "HitecMosaic",
                 "FreeflyRTK",
-                "HolybroGPS",
                 ]
 
     def build_arducopter(self, tag):

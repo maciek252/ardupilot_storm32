@@ -94,16 +94,15 @@ AP_Notify *AP_Notify::_singleton;
 #endif // BUILD_DEFAULT_LED_TYPE
 
 #ifndef BUZZER_ENABLE_DEFAULT
-#if HAL_CANMANAGER_ENABLED
-// Enable Buzzer messages over UAVCAN
-#define BUZZER_ENABLE_DEFAULT (Notify_Buzz_Builtin | Notify_Buzz_UAVCAN)
-#else
-#define BUZZER_ENABLE_DEFAULT Notify_Buzz_Builtin
-#endif
+#define BUZZER_ENABLE_DEFAULT 1
 #endif
 
 #ifndef BUILD_DEFAULT_BUZZER_TYPE
-#define BUILD_DEFAULT_BUZZER_TYPE BUZZER_ENABLE_DEFAULT
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS && HAL_DSHOT_ALARM
+  #define BUILD_DEFAULT_BUZZER_TYPE (BUZZER_ENABLE_DEFAULT | (HAL_DSHOT_ALARM << 1))
+#else
+  #define BUILD_DEFAULT_BUZZER_TYPE BUZZER_ENABLE_DEFAULT
+#endif
 #endif
 
 #ifndef NOTIFY_LED_BRIGHT_DEFAULT
@@ -135,7 +134,7 @@ const AP_Param::GroupInfo AP_Notify::var_info[] = {
     // @Param: BUZZ_TYPES
     // @DisplayName: Buzzer Driver Types
     // @Description: Controls what types of Buzzer will be enabled
-    // @Bitmask: 0:Built-in buzzer, 1:DShot, 2:UAVCAN
+    // @Bitmask: 0:Built-in buzzer, 1:DShot
     // @User: Advanced
     AP_GROUPINFO("BUZZ_TYPES", 1, AP_Notify, _buzzer_type, BUILD_DEFAULT_BUZZER_TYPE),
 
@@ -146,16 +145,14 @@ const AP_Param::GroupInfo AP_Notify::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("LED_OVERRIDE", 2, AP_Notify, _rgb_led_override, NOTIFY_LED_OVERRIDE_DEFAULT),
 
-#if HAL_DISPLAY_ENABLED
     // @Param: DISPLAY_TYPE
     // @DisplayName: Type of on-board I2C display
     // @Description: This sets up the type of on-board I2C display. Disabled by default.
     // @Values: 0:Disable,1:ssd1306,2:sh1106,10:SITL
     // @User: Advanced
     AP_GROUPINFO("DISPLAY_TYPE", 3, AP_Notify, _display_type, 0),
-#endif
 
-#if HAL_OREO_LED_ENABLED
+#if !HAL_MINIMIZE_FEATURES
     // @Param: OREO_THEME
     // @DisplayName: OreoLED Theme
     // @Description: Enable/Disable Solo Oreo LED driver, 0 to disable, 1 for Aircraft theme, 2 for Rover theme
@@ -294,9 +291,7 @@ void AP_Notify::add_backends(void)
                 }
                 break;
             case Notify_LED_NCP5623_I2C_Internal:
-                FOREACH_I2C_INTERNAL(b) {
-                    ADD_BACKEND(new NCP5623(b));
-                }
+                ADD_BACKEND(new NCP5623(TOSHIBA_LED_I2C_BUS_INTERNAL));
                 break;
 #endif
             case Notify_LED_PCA9685LED_I2C_External:
@@ -309,16 +304,16 @@ void AP_Notify::add_backends(void)
                 ADD_BACKEND(new ProfiLED());
                 break;
             case Notify_LED_OreoLED:
-#if HAL_OREO_LED_ENABLED
+#if !HAL_MINIMIZE_FEATURES
                 if (_oreo_theme) {
                     ADD_BACKEND(new OreoLED_I2C(0, _oreo_theme));
                 }
 #endif
                 break;
             case Notify_LED_UAVCAN:
-#if HAL_CANMANAGER_ENABLED
+#if HAL_ENABLE_LIBUAVCAN_DRIVERS
                 ADD_BACKEND(new UAVCAN_RGB_LED(0));
-#endif // HAL_CANMANAGER_ENABLED
+#endif // HAL_ENABLE_LIBUAVCAN_DRIVERS
                 break;
 
             case Notify_LED_Scripting:
@@ -335,10 +330,9 @@ void AP_Notify::add_backends(void)
         }
     }
 
-#if HAL_DISPLAY_ENABLED
+
     // Always try and add a display backend
     ADD_BACKEND(new Display());
-#endif
 
 // ChibiOS noise makers
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS

@@ -68,7 +68,6 @@ private:
         DATA_FLOAT,
         DATA_DOUBLE,
         DATA_VECTOR3F,
-        DATA_VECTOR3D,
         QUATERNION,
     };
 
@@ -78,7 +77,7 @@ private:
             Vector3f gyro;
             Vector3f accel_body;
         } imu;
-        Vector3d position;
+        Vector3f position;
         Vector3f attitude;
         Quaternion quaternion;
         Vector3f velocity;
@@ -101,7 +100,7 @@ private:
         { "", "timestamp", &state.timestamp_s, DATA_DOUBLE, true },
         { "imu", "gyro",    &state.imu.gyro, DATA_VECTOR3F, true },
         { "imu", "accel_body", &state.imu.accel_body, DATA_VECTOR3F, true },
-        { "", "position", &state.position, DATA_VECTOR3D, true },
+        { "", "position", &state.position, DATA_VECTOR3F, true },
         { "", "attitude", &state.attitude, DATA_VECTOR3F, false },
         { "", "quaternion", &state.quaternion, QUATERNION, false },
         { "", "velocity", &state.velocity, DATA_VECTOR3F, true },
