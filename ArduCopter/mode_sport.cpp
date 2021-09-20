@@ -9,12 +9,14 @@
 // sport_init - initialise sport controller
 bool ModeSport::init(bool ignore_checks)
 {
-    // set vertical speed and acceleration limits
-    pos_control->set_max_speed_accel_z(-get_pilot_speed_dn(), g.pilot_speed_up, g.pilot_accel_z);
+    // initialize vertical speed and acceleration
+    pos_control->set_max_speed_z(-get_pilot_speed_dn(), g.pilot_speed_up);
+    pos_control->set_max_accel_z(g.pilot_accel_z);
 
-    // initialise the vertical position controller
+    // initialise position and desired velocity
     if (!pos_control->is_active_z()) {
-        pos_control->init_z_controller();
+        pos_control->set_alt_target_to_current_alt();
+        pos_control->set_desired_velocity_z(inertial_nav.get_velocity_z());
     }
 
     return true;
@@ -24,8 +26,11 @@ bool ModeSport::init(bool ignore_checks)
 // should be called at 100hz or more
 void ModeSport::run()
 {
-    // set vertical speed and acceleration limits
-    pos_control->set_max_speed_accel_z(-get_pilot_speed_dn(), g.pilot_speed_up, g.pilot_accel_z);
+    float takeoff_climb_rate = 0.0f;
+
+    // initialize vertical speed and acceleration
+    pos_control->set_max_speed_z(-get_pilot_speed_dn(), g.pilot_speed_up);
+    pos_control->set_max_accel_z(g.pilot_accel_z);
 
     // apply SIMPLE mode transform
     update_simple_mode();
@@ -75,8 +80,8 @@ void ModeSport::run()
 
     case AltHold_MotorStopped:
         attitude_control->reset_rate_controller_I_terms();
-        attitude_control->reset_yaw_target_and_rate();
-        pos_control->relax_z_controller(0.0f);   // forces throttle output to decay to zero
+        attitude_control->set_yaw_target_to_current_heading();
+        pos_control->relax_alt_hold_controllers(0.0f);   // forces throttle output to go to zero
         break;
 
     case AltHold_Takeoff:
@@ -85,20 +90,24 @@ void ModeSport::run()
             takeoff.start(constrain_float(g.pilot_takeoff_alt,0.0f,1000.0f));
         }
 
+        // get take-off adjusted pilot and takeoff climb rates
+        takeoff.get_climb_rates(target_climb_rate, takeoff_climb_rate);
+
         // get avoidance adjusted climb rate
         target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
 
-        // set position controller targets adjusted for pilot input
-        takeoff.do_pilot_takeoff(target_climb_rate);
+        // call position controller
+        pos_control->set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
+        pos_control->add_takeoff_climb_rate(takeoff_climb_rate, G_Dt);
         break;
 
     case AltHold_Landed_Ground_Idle:
-        attitude_control->reset_yaw_target_and_rate();
+        attitude_control->set_yaw_target_to_current_heading();
         FALLTHROUGH;
 
     case AltHold_Landed_Pre_Takeoff:
         attitude_control->reset_rate_controller_I_terms_smoothly();
-        pos_control->relax_z_controller(0.0f);   // forces throttle output to decay to zero
+        pos_control->relax_alt_hold_controllers(0.0f);   // forces throttle output to go to zero
         break;
 
     case AltHold_Flying:
@@ -110,14 +119,14 @@ void ModeSport::run()
         // get avoidance adjusted climb rate
         target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
 
-        pos_control->set_pos_target_z_from_climb_rate_cm(target_climb_rate, false);
+        pos_control->set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
         break;
     }
 
     // call attitude controller
     attitude_control->input_euler_rate_roll_pitch_yaw(target_roll_rate, target_pitch_rate, target_yaw_rate);
 
-    // run the vertical position controller and set output throttle
+    // call z-axis position controller
     pos_control->update_z_controller();
 }
 

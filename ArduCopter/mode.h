@@ -95,10 +95,10 @@ public:
     // altitude fence
     float get_avoidance_adjusted_climbrate(float target_rate);
 
-    const Vector3f& get_vel_desired_cms() {
+    const Vector3f& get_desired_velocity() {
         // note that position control isn't used in every mode, so
         // this may return bogus data:
-        return pos_control->get_vel_desired_cms();
+        return pos_control->get_desired_velocity();
     }
 
 protected:
@@ -157,14 +157,16 @@ protected:
     public:
         void start(float alt_cm);
         void stop();
-        void do_pilot_takeoff(float& pilot_climb_rate);
+        void get_climb_rates(float& pilot_climb_rate,
+                             float& takeoff_climb_rate);
         bool triggered(float target_climb_rate) const;
 
         bool running() const { return _running; }
     private:
         bool _running;
-        float take_off_start_alt;
-        float take_off_complete_alt ;
+        float max_speed;
+        float alt_delta;
+        uint32_t start_ms;
     };
 
     static _TakeOff takeoff;
@@ -627,6 +629,8 @@ protected:
     const char *name4() const override { return "BRAK"; }
 
 private:
+
+    void init_target();
 
     uint32_t _timeout_start;
     uint32_t _timeout_ms;

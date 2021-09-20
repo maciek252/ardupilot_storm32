@@ -270,9 +270,10 @@ void ModeAuto::land_start(const Vector3f& destination)
     // initialise loiter target destination
     loiter_nav->init_target(destination);
 
-    // initialise the vertical position controller
+    // initialise position and desired velocity
     if (!pos_control->is_active_z()) {
-        pos_control->init_z_controller();
+        pos_control->set_alt_target(inertial_nav.get_altitude());
+        pos_control->set_desired_velocity_z(inertial_nav.get_velocity_z());
     }
 
     // initialise yaw
@@ -825,8 +826,7 @@ void ModeAuto::wp_run()
     // run waypoint controller
     copter.failsafe_terrain_set_status(wp_nav->update_wpnav());
 
-    // WP_Nav has set the vertical position control targets
-    // run the vertical position controller and set output throttle
+    // call z-axis position controller (wpnav should have already updated it's alt target)
     pos_control->update_z_controller();
 
     // call attitude controller
@@ -884,8 +884,7 @@ void ModeAuto::circle_run()
     // call circle controller
     copter.failsafe_terrain_set_status(copter.circle_nav->update());
 
-    // WP_Nav has set the vertical position control targets
-    // run the vertical position controller and set output throttle
+    // call z-axis position controller
     pos_control->update_z_controller();
 
     if (auto_yaw.mode() == AUTO_YAW_HOLD) {
@@ -977,13 +976,13 @@ void ModeAuto::loiter_to_alt_run()
     float target_climb_rate = sqrt_controller(
         -alt_error_cm,
         pos_control->get_pos_z_p().kP(),
-        pos_control->get_max_accel_z_cmss(),
+        pos_control->get_max_accel_z(),
         G_Dt);
 
     // get avoidance adjusted climb rate
     target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
 
-    pos_control->set_pos_target_z_from_climb_rate_cm(target_climb_rate, false);
+    pos_control->set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
     pos_control->update_z_controller();
 }
 
@@ -996,8 +995,11 @@ void ModeAuto::payload_place_start(const Vector3f& destination)
     // initialise loiter target destination
     loiter_nav->init_target(destination);
 
-    // initialise the vertical position controller
-    pos_control->init_z_controller();
+    // initialise position and desired velocity
+    if (!pos_control->is_active_z()) {
+        pos_control->set_alt_target(inertial_nav.get_altitude());
+        pos_control->set_desired_velocity_z(inertial_nav.get_velocity_z());
+    }
 
     // initialise yaw
     auto_yaw.set_mode(AUTO_YAW_HOLD);
@@ -1328,8 +1330,9 @@ void ModeAuto::do_loiter_to_alt(const AP_Mission::Mission_Command& cmd)
     loiter_to_alt.reached_alt = false;
     loiter_to_alt.alt_error_cm = 0;
 
-    // set vertical speed and acceleration limits
-    pos_control->set_max_speed_accel_z(wp_nav->get_default_speed_down(), wp_nav->get_default_speed_up(), wp_nav->get_accel_z());
+    pos_control->set_max_accel_z(wp_nav->get_accel_z());
+    pos_control->set_max_speed_z(wp_nav->get_default_speed_down(),
+                                 wp_nav->get_default_speed_up());
 }
 
 // do_spline_wp - initiate move to next waypoint

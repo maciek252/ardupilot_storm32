@@ -106,6 +106,11 @@ void Copter::init_ardupilot()
     AP::compass().set_log_bit(MASK_LOG_COMPASS);
     AP::compass().init();
 
+#if OPTFLOW == ENABLED
+    // make optflow available to AHRS
+    ahrs.set_optflow(&optflow);
+#endif
+
     // init Location class
 #if AP_TERRAIN_AVAILABLE && AC_TERRAIN
     Location::set_terrain(&terrain);
@@ -117,11 +122,11 @@ void Copter::init_ardupilot()
 #endif
 
     attitude_control->parameter_sanity_check();
+    pos_control->set_dt(scheduler.get_loop_period_s());
 
-#if OPTFLOW == ENABLED
-    // initialise optical flow sensor
-    optflow.init(MASK_LOG_OPTFLOW);
-#endif      // OPTFLOW == ENABLED
+
+    // init the optical flow sensor
+    init_optflow();
 
 #if HAL_MOUNT_ENABLED
     // initialise camera mount
@@ -539,7 +544,7 @@ void Copter::allocate_motors(void)
     }
     AP_Param::load_object_from_eeprom(attitude_control, ac_var_info);
         
-    pos_control = new AC_PosControl(*ahrs_view, inertial_nav, *motors, *attitude_control, scheduler.get_loop_period_s());
+    pos_control = new AC_PosControl(*ahrs_view, inertial_nav, *motors, *attitude_control);
     if (pos_control == nullptr) {
         AP_BoardConfig::config_error("Unable to allocate PosControl");
     }

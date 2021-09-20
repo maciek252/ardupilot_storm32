@@ -41,7 +41,6 @@ SimRover::SimRover(const char *frame_str) :
     if (vectored_thrust) {
         printf("Vectored Thrust Rover Simulation Started\n");
     }
-    lock_step_scheduled = true;
 }
 
 

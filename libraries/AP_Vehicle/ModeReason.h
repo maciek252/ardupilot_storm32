@@ -61,5 +61,4 @@ enum class ModeReason : uint8_t {
   MISSION_CMD,
   FRSKY_COMMAND,
   FENCE_RETURN_PREVIOUS_MODE,
-  QRTL_INSTEAD_OF_RTL
 };

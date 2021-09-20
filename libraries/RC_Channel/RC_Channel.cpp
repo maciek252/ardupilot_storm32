@@ -1097,11 +1097,19 @@ bool RC_Channel::do_aux_function(const aux_func_t ch_option, const AuxSwitchPos 
 
 #if !HAL_MINIMIZE_FEATURES
     case AUX_FUNC::KILL_IMU1:
-        AP::ins().kill_imu(0, ch_flag == AuxSwitchPos::HIGH);
+        if (ch_flag == AuxSwitchPos::HIGH) {
+            AP::ins().kill_imu(0, true);
+        } else {
+            AP::ins().kill_imu(0, false);
+        }
         break;
 
     case AUX_FUNC::KILL_IMU2:
-        AP::ins().kill_imu(1, ch_flag == AuxSwitchPos::HIGH);
+        if (ch_flag == AuxSwitchPos::HIGH) {
+            AP::ins().kill_imu(1, true);
+        } else {
+            AP::ins().kill_imu(1, false);
+        }
         break;
 #endif // HAL_MINIMIZE_FEATURES
 
