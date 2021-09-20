@@ -48,6 +48,13 @@ class AP_Mount_Alexmos;
 class AP_Mount_SToRM32;
 class AP_Mount_SToRM32_serial;
 
+
+//OW
+class BP_Mount_STorM32_MAVLink;
+#undef AP_MOUNT_MAX_INSTANCES
+#define AP_MOUNT_MAX_INSTANCES 1
+//OWENDA
+
 /*
   This is a workaround to allow the MAVLink backend access to the
   SmallEKF. It would be nice to find a neater solution to this
