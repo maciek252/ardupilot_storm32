@@ -1,0 +1,8 @@
+ArduPlane:
+
+4.1.0beta8: ea158344010ef2e71be4b48f3a5c0f6703b3e5b5
+4.1.0beta7: 4bf32a5fb7178fad91eb9d5b5bf752f41366fe88
+
+ArduCopter:
+4.1.0-rc2: 4bf32a5fb7178fad91eb9d5b5bf752f41366fe88
+4.1.0beta8: 9ac9b21e8a30e1674c41ea91e5d9ab12b1269eba
